@@ -25,4 +25,101 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <script src="script.js"></script>
 </body>
-</html># Cln
+</html># 
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+}
+
+.poll-container {
+    width: 300px;
+    margin: 0 auto;
+}
+
+.buttons button {
+    font-size: 20px;
+    padding: 10px;
+    margin: 20px;
+    width: 120px;
+    cursor: pointer;
+}
+
+#results {
+    margin-top: 30px;
+}
+// Initialize Firebase
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
+
+// Get the buttons and results div
+const pizzaButton = document.getElementById('pizzaButton');
+const tacoButton = document.getElementById('tacoButton');
+const resultsDiv = document.getElementById('results');
+const pizzaPercentage = document.getElementById('pizzaPercentage');
+const tacoPercentage = document.getElementById('tacoPercentage');
+
+// Event listeners for button clicks
+pizzaButton.addEventListener('click', () => submitVote('pizza'));
+tacoButton.addEventListener('click', () => submitVote('tacos'));
+
+// Submit the vote to Firebase Firestore
+async function submitVote(choice) {
+    try {
+        // Save the vote in Firestore
+        await db.collection('votes').add({
+            choice: choice,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Get updated vote counts and percentages
+        getVotePercentages();
+    } catch (error) {
+        console.error('Error submitting vote:', error);
+    }
+}
+
+// Function to get and display the vote percentages
+async function getVotePercentages() {
+    try {
+        const snapshot = await db.collection('votes').get();
+        const totalVotes = snapshot.size;
+
+        if (totalVotes === 0) {
+            pizzaPercentage.textContent = '0%';
+            tacoPercentage.textContent = '0%';
+            return;
+        }
+
+        let pizzaVotes = 0;
+        let tacoVotes = 0;
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.choice === 'pizza') pizzaVotes++;
+            if (data.choice === 'tacos') tacoVotes++;
+        });
+
+        const pizzaPercentageValue = ((pizzaVotes / totalVotes) * 100).toFixed(2);
+        const tacoPercentageValue = ((tacoVotes / totalVotes) * 100).toFixed(2);
+
+        pizzaPercentage.textContent = `${pizzaPercentageValue}%`;
+        tacoPercentage.textContent = `${tacoPercentageValue}%`;
+
+        resultsDiv.style.display = 'block';
+    } catch (error) {
+        console.error('Error getting vote percentages:', error);
+    }
+}
+
+// Initialize vote percentages
+getVotePercentages();
